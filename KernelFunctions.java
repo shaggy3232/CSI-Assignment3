@@ -74,6 +74,10 @@ public class KernelFunctions {
     // to update the page table entries for supporting various
     // page replacement algorithms.
     public static void doneMemAccess(int vpage, Process prc, double clock) {
+    	if (prc.pageTable[vpage].valid) {
+						prc.pageTable[vpage].used = true;
+						prc.pageTable[vpage].tmStamp = clock;
+}
     }
 
     // FIFO page Replacement algorithm
@@ -105,10 +109,61 @@ public class KernelFunctions {
 
     // CLOCK page Replacement algorithm
     public static void pageReplAlgorithmCLOCK(int vpage, Process prc) {
+        int vPageReplaced;  // Page to be replaced
+        int frame;	// frame to receive new page
+       
+        boolean flag = true;
+        while(flag)
+        {
+           frame = prc.allocatedFrames[prc.framePtr];   
+           vPageReplaced = findvPage(prc.pageTable,frame);
+           
+           if(prc.pageTable[vPageReplaced].used) {
+            
+            prc.pageTable[vPageReplaced].used = false;
+           }
+           else  
+           {
+            prc.pageTable[vPageReplaced].valid = false;
+            prc.pageTable[vpage].frameNum = frame;
+            prc.pageTable[vpage].valid = true;    
+            flag = false;
+           }
+           prc.framePtr = (prc.framePtr+1) % prc.allocatedFrames.length;  
+        }
+
     }
 
-    // LRU page Replacement algorithm
+    // LRU page Replacement algorithm                                                                 
     public static void pageReplAlgorithmLRU(int vpage, Process prc) {
+        int vPageReplaced;  // Page to be replaced
+        int frame;	// frame to receive new page
+        double lru;
+        frame = prc.allocatedFrames[prc.framePtr];   // get next available frame
+        vPageReplaced = findvPage(prc.pageTable, frame);     // find current page using it (i.e written to disk)
+        prc.pageTable[vPageReplaced].valid = false;  // Old page is replaced.
+        prc.pageTable[vpage].frameNum = frame;   // load page into the frame and update table
+        prc.pageTable[vpage].valid = true;     
+
+        lru = Double.MAX_VALUE;
+        for (int i=0;  i<prc.pageTable.length; i ++){
+            if (frame != prc.pageTable[i].frameNum && prc.pageTable[i].valid && lru > prc.pageTable[i].tmStamp)
+            {
+                lru = prc.pageTable[i].tmStamp;
+                for (int j = 0; j<prc.allocatedFrames.length;j++){
+                    if (prc.allocatedFrames[j] == prc.pageTable[i].frameNum){
+                        prc.framePtr = j;
+                    }
+                }
+
+            }
+
+        }
+
+
+
+
+
     }
 
     public static void pageReplAlgorithmCOUNT(int vpage, Process prc) {
@@ -169,4 +224,14 @@ class PgTblEntry {
     boolean valid;   // Valid Bit
     boolean used;    // Used Bit
     double tmStamp;  // Time Stamp
+
+
+
+
+
+
+
+
+
+
 }
